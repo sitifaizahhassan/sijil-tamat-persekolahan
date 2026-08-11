@@ -7,13 +7,13 @@
 <style>
   * { box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; margin: 0; background: #f0f2f5; color: #1a1a1a; }
-  header { background: #0b5394; color: #fff; padding: 16px 24px; }
+  header { background: #0b5394; color: #fff; padding: 16px 24px; display:flex; justify-content:space-between; align-items:center;}
   header h1 { margin: 0; font-size: 20px; }
   .container { max-width: 1100px; margin: 20px auto; padding: 0 16px; }
   .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
   .card h2 { margin-top: 0; font-size: 16px; color: #0b5394; border-bottom: 2px solid #eee; padding-bottom: 8px; }
   label { display: block; font-size: 13px; font-weight: bold; margin: 10px 0 4px; }
-  input[type=text], input[type=date], select, textarea {
+  input[type=text], input[type=date], input[type=password], select, textarea {
     width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px;
   }
   input:disabled { background: #eee; color: #555; }
@@ -30,6 +30,17 @@
   .muted { color: #777; font-size: 13px; }
   .row-actions button { padding: 4px 10px; font-size: 12px; }
   @media(max-width:700px){ .grid{grid-template-columns:1fr;} }
+
+  /* ---- Skrin Log Masuk ---- */
+  #loginScreen { position:fixed; inset:0; background:#0b5394; display:flex; align-items:center; justify-content:center; z-index:999; }
+  .login-box { background:#fff; padding:30px; border-radius:10px; width:320px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,.3); }
+  .login-box h2 { color:#0b5394; margin-top:0; }
+  #app { display:none; }
+
+  /* Banner status API */
+  .banner { padding:10px 16px; border-radius:6px; font-size:13px; margin-bottom:16px; }
+  .banner-warn { background:#fff3cd; color:#856404; border:1px solid #ffe69c; }
+  .banner-ok { background:#d4edda; color:#155724; border:1px solid #b7dfc0; }
 
   /* ---------- SIJIL (CETAK) ---------- */
   #sijilArea { display: none; }
@@ -54,19 +65,35 @@
 
   @media print {
     body { background: #fff; }
-    header, .container { display: none !important; }
+    header, .container, #loginScreen { display: none !important; }
     #sijilArea { display: block !important; }
     .sijil { border: 3px double #0b5394; page-break-after: always; }
   }
 </style>
 </head>
 <body>
+
+<!-- ===== SKRIN LOG MASUK ===== -->
+<div id="loginScreen">
+  <div class="login-box">
+    <h2>🎓 Log Masuk</h2>
+    <p class="muted">Sistem Sijil Berhenti Sekolah</p>
+    <input type="password" id="passInput" placeholder="Kata laluan" onkeydown="if(event.key==='Enter')login()">
+    <div id="loginErr" style="color:#c62828;font-size:13px;margin-top:6px;"></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="login()">Masuk</button>
+  </div>
+</div>
+
+<!-- ===== APLIKASI ===== -->
+<div id="app">
 <header>
   <h1>🎓 Sistem Sijil Berhenti Sekolah</h1>
-  <div class="muted" style="color:#cfe0f5;font-size:13px">Isi maklumat, simpan, kemas kini &amp; cetak semula bila-bila masa</div>
+  <button class="btn btn-gray" style="margin:0" onclick="logout()">🚪 Log Keluar</button>
 </header>
 
 <div class="container">
+
+  <div id="apiBanner"></div>
 
   <!-- Tetapan Sekolah -->
   <div class="card">
@@ -91,12 +118,13 @@
     </div>
     <img id="logoPreview" style="max-height:70px;margin-top:10px;display:none">
     <div><button class="btn btn-gray" onclick="simpanTetapan()">💾 Simpan Tetapan</button></div>
+    <p class="muted">Nota: Tetapan sekolah &amp; logo disimpan dalam browser setiap komputer.</p>
   </div>
 
   <!-- Borang Murid -->
   <div class="card">
     <h2 id="formTitle">📝 Tambah Maklumat Murid</h2>
-    <input type="hidden" id="editIndex" value="-1">
+    <input type="hidden" id="editId" value="">
     <div class="grid">
       <div><label>1. Nama Penuh Murid</label><input type="text" id="f_nama"></div>
       <div><label>2. No. K/P Murid</label><input type="text" id="f_kp"></div>
@@ -104,7 +132,7 @@
       <div><label>4. Tempat Lahir</label><input type="text" id="f_tempatlahir"></div>
       <div><label>5. Tarikh Lahir</label><input type="date" id="f_tarikhlahir"></div>
       <div><label>6. Tarikh Masuk Sekolah</label><input type="date" id="f_tarikhmasuk"></div>
-      <div><label>7. ID Murid</label><input type="text" id="f_id"></div>
+      <div><label>7. ID Murid</label><input type="text" id="f_idmurid"></div>
       <div><label>8. Darjah Masuk Sekolah</label><input type="text" id="f_darjahmasuk" placeholder="cth: TAHUN 1"></div>
       <div><label>9. Tarikh Tamat Sekolah</label><input type="date" id="f_tarikhtamat"></div>
       <div><label>10. Darjah Tertinggi Yang Akhir</label><input type="text" id="f_darjahakhir" placeholder="cth: TAHUN 6"></div>
@@ -127,8 +155,10 @@
 
   <!-- Senarai Murid -->
   <div class="card">
-    <h2>👥 Senarai Murid</h2>
-    <div id="senaraiKosong" class="muted">Belum ada data murid. Sila isi borang di atas.</div>
+    <h2>👥 Senarai Murid (dikongsi semua guru)
+      <button class="btn btn-gray" style="float:right;margin:0" onclick="muatData()">🔄 Muat Semula</button>
+    </h2>
+    <div id="senaraiStatus" class="muted">Memuatkan data...</div>
     <table id="tblMurid" style="display:none">
       <thead><tr><th>#</th><th>Nama Murid</th><th>No. K/P</th><th>Tindakan</th></tr></thead>
       <tbody></tbody>
@@ -136,21 +166,49 @@
   </div>
 
 </div>
+</div>
 
 <!-- Kawasan sijil untuk cetak -->
 <div id="sijilArea"></div>
 
 <script>
-const GURU_BESAR = 'NOR HAMIZAH BINTI DAUD'; // Nama Guru Besar tetap
-const LS_MURID = 'sijil_murid';
-const LS_SET = 'sijil_tetapan';
+/* ============================================================
+   TETAPAN PENTING
+   ------------------------------------------------------------
+   1. KATA_LALUAN : kata laluan untuk guru log masuk
+   2. API_URL     : URL Web App daripada Google Apps Script
+      (lihat PANDUAN-SETUP.md untuk cara dapatkan URL ini)
+   ============================================================ */
+const KATA_LALUAN = 'Guru@2026';
+const API_URL = 'MASUKKAN_URL_WEB_APP_ANDA_DI_SINI';
+/* ============================================================ */
 
-function getMurid(){ return JSON.parse(localStorage.getItem(LS_MURID) || '[]'); }
-function setMurid(a){ localStorage.setItem(LS_MURID, JSON.stringify(a)); }
+const LS_SET = 'sijil_tetapan';
+const FIELDS = ['nama','kp','sijillahir','tempatlahir','tarikhlahir','tarikhmasuk',
+  'idmurid','darjahmasuk','tarikhtamat','darjahakhir','sekolahdahulu','kelakuan','sebab',
+  'uniform','kelab','sukan','lain'];
+let SENARAI = [];
+
+// ---- Log Masuk ----
+function login(){
+  const p = passInput.value;
+  if(p === KATA_LALUAN){
+    sessionStorage.setItem('sijil_auth','1');
+    loginScreen.style.display='none';
+    app.style.display='block';
+    mula();
+  } else {
+    loginErr.textContent = 'Kata laluan salah. Cuba lagi.';
+  }
+}
+function logout(){ sessionStorage.removeItem('sijil_auth'); location.reload(); }
+if(sessionStorage.getItem('sijil_auth')==='1'){
+  loginScreen.style.display='none'; app.style.display='block';
+}
+
+// ---- Tetapan (localStorage) ----
 function getTetapan(){ return JSON.parse(localStorage.getItem(LS_SET) || '{}'); }
 function setTetapan(o){ localStorage.setItem(LS_SET, JSON.stringify(o)); }
-
-// ---- Tetapan ----
 function loadTetapan(){
   const t = getTetapan();
   setNamaSekolah.value = t.namaSekolah || 'SK JALAN DATUK PALEMBANG';
@@ -158,84 +216,107 @@ function loadTetapan(){
   if(t.logo){ logoPreview.src = t.logo; logoPreview.style.display='block'; }
 }
 setLogo.addEventListener('change', e=>{
-  const f = e.target.files[0]; if(!f) return;
-  const r = new FileReader();
-  r.onload = ev => { logoPreview.src = ev.target.result; logoPreview.style.display='block'; logoPreview.dataset.data = ev.target.result; };
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{ logoPreview.src=ev.target.result; logoPreview.style.display='block'; logoPreview.dataset.data=ev.target.result; };
   r.readAsDataURL(f);
 });
 function simpanTetapan(){
-  const t = getTetapan();
-  setTetapan({
-    namaSekolah: setNamaSekolah.value.trim(),
-    tahun: setTahun.value.trim(),
-    logo: logoPreview.dataset.data || t.logo || ''
-  });
+  const t=getTetapan();
+  setTetapan({ namaSekolah:setNamaSekolah.value.trim(), tahun:setTahun.value.trim(), logo:logoPreview.dataset.data||t.logo||'' });
   alert('Tetapan disimpan!');
 }
 
-// ---- Murid ----
+// ---- Semak API ----
+function apiSedia(){ return API_URL && API_URL.indexOf('http')===0; }
+function paparBanner(){
+  if(apiSedia()){
+    apiBanner.innerHTML='<div class="banner banner-ok">✅ Bersambung ke pangkalan data (Google Sheet). Data dikongsi semua guru.</div>';
+  } else {
+    apiBanner.innerHTML='<div class="banner banner-warn">⚠️ API belum disambung. Sila ikut PANDUAN-SETUP.md &amp; masukkan URL Web App dalam kod (API_URL). Buat masa ini data tidak boleh disimpan.</div>';
+  }
+}
+
+// ---- Borang ----
 function bacaBorang(){
-  return {
-    nama:f_nama.value, kp:f_kp.value, sijillahir:f_sijillahir.value, tempatlahir:f_tempatlahir.value,
-    tarikhlahir:f_tarikhlahir.value, tarikhmasuk:f_tarikhmasuk.value, id:f_id.value,
-    darjahmasuk:f_darjahmasuk.value, tarikhtamat:f_tarikhtamat.value, darjahakhir:f_darjahakhir.value,
-    sekolahdahulu:f_sekolahdahulu.value, kelakuan:f_kelakuan.value, sebab:f_sebab.value,
-    uniform:f_uniform.value, kelab:f_kelab.value, sukan:f_sukan.value, lain:f_lain.value
-  };
+  const m={}; FIELDS.forEach(f=>{ m[f]=document.getElementById('f_'+f).value; }); return m;
 }
 function isiBorang(m){
-  f_nama.value=m.nama||''; f_kp.value=m.kp||''; f_sijillahir.value=m.sijillahir||''; f_tempatlahir.value=m.tempatlahir||'';
-  f_tarikhlahir.value=m.tarikhlahir||''; f_tarikhmasuk.value=m.tarikhmasuk||''; f_id.value=m.id||'';
-  f_darjahmasuk.value=m.darjahmasuk||''; f_tarikhtamat.value=m.tarikhtamat||''; f_darjahakhir.value=m.darjahakhir||'';
-  f_sekolahdahulu.value=m.sekolahdahulu||''; f_kelakuan.value=m.kelakuan||''; f_sebab.value=m.sebab||'';
-  f_uniform.value=m.uniform||''; f_kelab.value=m.kelab||''; f_sukan.value=m.sukan||''; f_lain.value=m.lain||'';
+  FIELDS.forEach(f=>{ document.getElementById('f_'+f).value = (m&&m[f])||''; });
 }
-function resetForm(){
-  isiBorang({}); editIndex.value=-1; formTitle.textContent='📝 Tambah Maklumat Murid';
-}
-function simpanMurid(){
-  const m = bacaBorang();
+function resetForm(){ isiBorang({}); editId.value=''; formTitle.textContent='📝 Tambah Maklumat Murid'; }
+
+async function simpanMurid(){
+  const m=bacaBorang();
   if(!m.nama.trim()){ alert('Sila isi Nama Penuh Murid.'); return; }
-  const arr = getMurid();
-  const idx = parseInt(editIndex.value);
-  if(idx >= 0) arr[idx] = m; else arr.push(m);
-  setMurid(arr); resetForm(); render();
-  alert('Data murid disimpan!');
+  if(!apiSedia()){ alert('API belum disambung. Sila ikut PANDUAN-SETUP.md.'); return; }
+  const isEdit = editId.value !== '';
+  if(isEdit) m.id = editId.value;
+  try{
+    const res = await fetch(API_URL, {
+      method:'POST',
+      body: JSON.stringify({ action: isEdit?'update':'add', murid: m })
+    });
+    const j = await res.json();
+    if(j.ok){ resetForm(); await muatData(); alert('Data murid disimpan!'); }
+    else alert('Ralat: '+(j.error||'tidak diketahui'));
+  }catch(err){ alert('Ralat sambungan: '+err); }
 }
-function editMurid(i){
-  isiBorang(getMurid()[i]); editIndex.value=i;
+
+function editMurid(id){
+  const m = SENARAI.find(x=>String(x.id)===String(id));
+  if(!m) return;
+  isiBorang(m); editId.value=id;
   formTitle.textContent='✏️ Kemas Kini Maklumat Murid';
   window.scrollTo({top:0,behavior:'smooth'});
 }
-function padamMurid(i){
+
+async function padamMurid(id){
   if(!confirm('Padam murid ini?')) return;
-  const arr=getMurid(); arr.splice(i,1); setMurid(arr); render();
+  try{
+    const res = await fetch(API_URL, { method:'POST', body: JSON.stringify({ action:'delete', id:id }) });
+    const j = await res.json();
+    if(j.ok) await muatData(); else alert('Ralat: '+(j.error||''));
+  }catch(err){ alert('Ralat sambungan: '+err); }
 }
+
+async function muatData(){
+  if(!apiSedia()){ senaraiStatus.textContent='API belum disambung.'; senaraiStatus.style.display='block'; tblMurid.style.display='none'; return; }
+  senaraiStatus.textContent='Memuatkan data...'; senaraiStatus.style.display='block';
+  try{
+    const res = await fetch(API_URL);
+    const j = await res.json();
+    SENARAI = j.data || [];
+    render();
+  }catch(err){ senaraiStatus.textContent='Ralat memuatkan data: '+err; }
+}
+
 function render(){
-  const arr=getMurid(); const tb=tblMurid.querySelector('tbody'); tb.innerHTML='';
-  if(arr.length===0){ senaraiKosong.style.display='block'; tblMurid.style.display='none'; return; }
-  senaraiKosong.style.display='none'; tblMurid.style.display='table';
-  arr.forEach((m,i)=>{
+  const tb=tblMurid.querySelector('tbody'); tb.innerHTML='';
+  if(SENARAI.length===0){ senaraiStatus.textContent='Belum ada data murid.'; senaraiStatus.style.display='block'; tblMurid.style.display='none'; return; }
+  senaraiStatus.style.display='none'; tblMurid.style.display='table';
+  SENARAI.forEach((m,i)=>{
     const tr=document.createElement('tr');
     tr.innerHTML=`<td>${i+1}</td><td>${m.nama||''}</td><td>${m.kp||''}</td>
       <td class="row-actions">
-        <button class="btn btn-gray" onclick="editMurid(${i})">Edit</button>
-        <button class="btn btn-green" onclick="cetak(${i})">Cetak</button>
-        <button class="btn btn-red" onclick="padamMurid(${i})">Padam</button>
+        <button class="btn btn-gray" onclick="editMurid('${m.id}')">Edit</button>
+        <button class="btn btn-green" onclick="cetak('${m.id}')">Cetak</button>
+        <button class="btn btn-red" onclick="padamMurid('${m.id}')">Padam</button>
       </td>`;
     tb.appendChild(tr);
   });
 }
 
-// ---- Cetak Sijil ----
-function fmt(d){ if(!d) return ''; const p=d.split('-'); return p.length===3? `${p[2]}/${p[1]}/${p[0]}` : d; }
-function cetak(i){
-  const m=getMurid()[i]; const t=getTetapan();
-  const logo = t.logo ? `<img src="${t.logo}">` : '';
-  sijilArea.innerHTML = `
+// ---- Cetak ----
+function fmt(d){ if(!d) return ''; const s=String(d); const p=s.split('-'); return p.length===3? `${p[2]}/${p[1]}/${p[0]}` : s; }
+function li(n,l,v){ return `<li><span class="no">${n}.</span><span class="lbl">${l}</span><span class="val">${v||''}</span></li>`; }
+function cetak(id){
+  const m=SENARAI.find(x=>String(x.id)===String(id)); if(!m) return;
+  const t=getTetapan();
+  const logo=t.logo?`<img src="${t.logo}">`:'';
+  sijilArea.innerHTML=`
   <div class="sijil">
-    <div class="sijil-header">
-      ${logo}
+    <div class="sijil-header">${logo}
       <div class="sijil-title">SIJIL BERHENTI SEKOLAH</div>
       <div class="sijil-sub">TAHUN ${t.tahun||''}</div>
     </div>
@@ -246,7 +327,7 @@ function cetak(i){
       ${li(4,'TEMPAT LAHIR',m.tempatlahir)}
       ${li(5,'TARIKH LAHIR',fmt(m.tarikhlahir))}
       ${li(6,'TARIKH MASUK SEKOLAH',fmt(m.tarikhmasuk))}
-      ${li(7,'ID MURID',m.id)}
+      ${li(7,'ID MURID',m.idmurid)}
       ${li(8,'DARJAH MASUK SEKOLAH',m.darjahmasuk)}
       ${li(9,'TARIKH TAMAT SEKOLAH',fmt(m.tarikhtamat))}
       ${li(10,'DARJAH TERTINGGI YANG AKHIR',m.darjahakhir)}
@@ -263,7 +344,7 @@ function cetak(i){
     </ol>
     <div class="sign">
       <div>........................................................</div>
-      <div>(${GURU_BESAR})</div>
+      <div>(NOR HAMIZAH BINTI DAUD)</div>
       <div>GURU BESAR</div>
       <div>${t.namaSekolah||''}</div>
       <div class="line">TARIKH : ........................................</div>
@@ -271,9 +352,10 @@ function cetak(i){
   </div>`;
   window.print();
 }
-function li(n,l,v){ return `<li><span class="no">${n}.</span><span class="lbl">${l}</span><span class="val">${v||''}</span></li>`; }
 
-loadTetapan(); render();
+// ---- Mula ----
+function mula(){ loadTetapan(); paparBanner(); muatData(); }
+if(sessionStorage.getItem('sijil_auth')==='1'){ mula(); }
 </script>
 </body>
 </html>
