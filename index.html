@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistem Sijil Berhenti Sekolah</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; margin: 0; background: #f0f2f5; color: #1a1a1a; }
+  header { background: #0b5394; color: #fff; padding: 16px 24px; }
+  header h1 { margin: 0; font-size: 20px; }
+  .container { max-width: 1100px; margin: 20px auto; padding: 0 16px; }
+  .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+  .card h2 { margin-top: 0; font-size: 16px; color: #0b5394; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+  label { display: block; font-size: 13px; font-weight: bold; margin: 10px 0 4px; }
+  input[type=text], input[type=date], select, textarea {
+    width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px;
+  }
+  input:disabled { background: #eee; color: #555; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+  .btn { display: inline-block; padding: 9px 16px; border: none; border-radius: 5px; cursor: pointer;
+         font-size: 14px; font-weight: bold; margin: 6px 6px 0 0; }
+  .btn-primary { background: #0b5394; color: #fff; }
+  .btn-green { background: #2e7d32; color: #fff; }
+  .btn-gray { background: #666; color: #fff; }
+  .btn-red { background: #c62828; color: #fff; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { border: 1px solid #ccc; padding: 6px 8px; font-size: 13px; text-align: left; }
+  th { background: #f5f5f5; }
+  .muted { color: #777; font-size: 13px; }
+  .row-actions button { padding: 4px 10px; font-size: 12px; }
+  @media(max-width:700px){ .grid{grid-template-columns:1fr;} }
+
+  /* ---------- SIJIL (CETAK) ---------- */
+  #sijilArea { display: none; }
+  .sijil {
+    width: 210mm; min-height: 297mm; margin: 0 auto; padding: 22mm 20mm; background: #fff;
+    border: 3px double #0b5394; color: #000; font-size: 14px;
+  }
+  .sijil-header { text-align: center; margin-bottom: 18px; }
+  .sijil-header img { max-height: 90px; margin-bottom: 8px; }
+  .sijil-title { font-size: 20px; font-weight: bold; letter-spacing: 1px; }
+  .sijil-sub { font-size: 16px; font-weight: bold; }
+  .sijil ol { padding-left: 0; list-style: none; margin: 20px 0; }
+  .sijil ol li { display: flex; margin-bottom: 9px; }
+  .sijil .no { width: 26px; }
+  .sijil .lbl { width: 260px; }
+  .sijil .val { flex: 1; }
+  .sijil .val::before { content: ": "; }
+  .achv { width: 100%; border-collapse: collapse; margin: 8px 0; }
+  .achv th, .achv td { border: 1px solid #000; padding: 5px; font-size: 12px; text-align: center; }
+  .sign { margin-top: 55px; }
+  .sign .line { margin-top: 45px; }
+
+  @media print {
+    body { background: #fff; }
+    header, .container { display: none !important; }
+    #sijilArea { display: block !important; }
+    .sijil { border: 3px double #0b5394; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎓 Sistem Sijil Berhenti Sekolah</h1>
+  <div class="muted" style="color:#cfe0f5;font-size:13px">Isi maklumat, simpan, kemas kini &amp; cetak semula bila-bila masa</div>
+</header>
+
+<div class="container">
+
+  <!-- Tetapan Sekolah -->
+  <div class="card">
+    <h2>⚙️ Tetapan Sekolah &amp; Logo</h2>
+    <div class="grid">
+      <div>
+        <label>Nama Sekolah</label>
+        <input type="text" id="setNamaSekolah" placeholder="cth: SK JALAN DATUK PALEMBANG">
+      </div>
+      <div>
+        <label>Nama Guru Besar (tetap)</label>
+        <input type="text" id="setGuruBesar" value="NOR HAMIZAH BINTI DAUD" disabled>
+      </div>
+      <div>
+        <label>Tahun Sijil</label>
+        <input type="text" id="setTahun" placeholder="cth: 2026">
+      </div>
+      <div>
+        <label>Logo Sekolah (satu)</label>
+        <input type="file" id="setLogo" accept="image/*">
+      </div>
+    </div>
+    <img id="logoPreview" style="max-height:70px;margin-top:10px;display:none">
+    <div><button class="btn btn-gray" onclick="simpanTetapan()">💾 Simpan Tetapan</button></div>
+  </div>
+
+  <!-- Borang Murid -->
+  <div class="card">
+    <h2 id="formTitle">📝 Tambah Maklumat Murid</h2>
+    <input type="hidden" id="editIndex" value="-1">
+    <div class="grid">
+      <div><label>1. Nama Penuh Murid</label><input type="text" id="f_nama"></div>
+      <div><label>2. No. K/P Murid</label><input type="text" id="f_kp"></div>
+      <div><label>3. No. Sijil Lahir</label><input type="text" id="f_sijillahir"></div>
+      <div><label>4. Tempat Lahir</label><input type="text" id="f_tempatlahir"></div>
+      <div><label>5. Tarikh Lahir</label><input type="date" id="f_tarikhlahir"></div>
+      <div><label>6. Tarikh Masuk Sekolah</label><input type="date" id="f_tarikhmasuk"></div>
+      <div><label>7. ID Murid</label><input type="text" id="f_id"></div>
+      <div><label>8. Darjah Masuk Sekolah</label><input type="text" id="f_darjahmasuk" placeholder="cth: TAHUN 1"></div>
+      <div><label>9. Tarikh Tamat Sekolah</label><input type="date" id="f_tarikhtamat"></div>
+      <div><label>10. Darjah Tertinggi Yang Akhir</label><input type="text" id="f_darjahakhir" placeholder="cth: TAHUN 6"></div>
+      <div><label>11. Nama Sekolah Dahulu</label><input type="text" id="f_sekolahdahulu"></div>
+      <div><label>13. Kelakuan</label><input type="text" id="f_kelakuan" placeholder="cth: BAIK"></div>
+      <div><label>14. Sebab Berhenti</label><input type="text" id="f_sebab" placeholder="cth: TAMAT SEKOLAH RENDAH"></div>
+    </div>
+
+    <label>12. Pencapaian Istimewa / Kecenderungan Tertentu</label>
+    <div class="grid">
+      <div><label>Badan Beruniform</label><input type="text" id="f_uniform"></div>
+      <div><label>Kelab dan Persatuan</label><input type="text" id="f_kelab"></div>
+      <div><label>Sukan dan Permainan</label><input type="text" id="f_sukan"></div>
+      <div><label>Lain-lain</label><input type="text" id="f_lain"></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="simpanMurid()">💾 Simpan Murid</button>
+    <button class="btn btn-gray" onclick="resetForm()">🧹 Kosongkan Borang</button>
+  </div>
+
+  <!-- Senarai Murid -->
+  <div class="card">
+    <h2>👥 Senarai Murid</h2>
+    <div id="senaraiKosong" class="muted">Belum ada data murid. Sila isi borang di atas.</div>
+    <table id="tblMurid" style="display:none">
+      <thead><tr><th>#</th><th>Nama Murid</th><th>No. K/P</th><th>Tindakan</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Kawasan sijil untuk cetak -->
+<div id="sijilArea"></div>
+
+<script>
+const GURU_BESAR = 'NOR HAMIZAH BINTI DAUD'; // Nama Guru Besar tetap
+const LS_MURID = 'sijil_murid';
+const LS_SET = 'sijil_tetapan';
+
+function getMurid(){ return JSON.parse(localStorage.getItem(LS_MURID) || '[]'); }
+function setMurid(a){ localStorage.setItem(LS_MURID, JSON.stringify(a)); }
+function getTetapan(){ return JSON.parse(localStorage.getItem(LS_SET) || '{}'); }
+function setTetapan(o){ localStorage.setItem(LS_SET, JSON.stringify(o)); }
+
+// ---- Tetapan ----
+function loadTetapan(){
+  const t = getTetapan();
+  setNamaSekolah.value = t.namaSekolah || 'SK JALAN DATUK PALEMBANG';
+  setTahun.value = t.tahun || '2026';
+  if(t.logo){ logoPreview.src = t.logo; logoPreview.style.display='block'; }
+}
+setLogo.addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ev => { logoPreview.src = ev.target.result; logoPreview.style.display='block'; logoPreview.dataset.data = ev.target.result; };
+  r.readAsDataURL(f);
+});
+function simpanTetapan(){
+  const t = getTetapan();
+  setTetapan({
+    namaSekolah: setNamaSekolah.value.trim(),
+    tahun: setTahun.value.trim(),
+    logo: logoPreview.dataset.data || t.logo || ''
+  });
+  alert('Tetapan disimpan!');
+}
+
+// ---- Murid ----
+function bacaBorang(){
+  return {
+    nama:f_nama.value, kp:f_kp.value, sijillahir:f_sijillahir.value, tempatlahir:f_tempatlahir.value,
+    tarikhlahir:f_tarikhlahir.value, tarikhmasuk:f_tarikhmasuk.value, id:f_id.value,
+    darjahmasuk:f_darjahmasuk.value, tarikhtamat:f_tarikhtamat.value, darjahakhir:f_darjahakhir.value,
+    sekolahdahulu:f_sekolahdahulu.value, kelakuan:f_kelakuan.value, sebab:f_sebab.value,
+    uniform:f_uniform.value, kelab:f_kelab.value, sukan:f_sukan.value, lain:f_lain.value
+  };
+}
+function isiBorang(m){
+  f_nama.value=m.nama||''; f_kp.value=m.kp||''; f_sijillahir.value=m.sijillahir||''; f_tempatlahir.value=m.tempatlahir||'';
+  f_tarikhlahir.value=m.tarikhlahir||''; f_tarikhmasuk.value=m.tarikhmasuk||''; f_id.value=m.id||'';
+  f_darjahmasuk.value=m.darjahmasuk||''; f_tarikhtamat.value=m.tarikhtamat||''; f_darjahakhir.value=m.darjahakhir||'';
+  f_sekolahdahulu.value=m.sekolahdahulu||''; f_kelakuan.value=m.kelakuan||''; f_sebab.value=m.sebab||'';
+  f_uniform.value=m.uniform||''; f_kelab.value=m.kelab||''; f_sukan.value=m.sukan||''; f_lain.value=m.lain||'';
+}
+function resetForm(){
+  isiBorang({}); editIndex.value=-1; formTitle.textContent='📝 Tambah Maklumat Murid';
+}
+function simpanMurid(){
+  const m = bacaBorang();
+  if(!m.nama.trim()){ alert('Sila isi Nama Penuh Murid.'); return; }
+  const arr = getMurid();
+  const idx = parseInt(editIndex.value);
+  if(idx >= 0) arr[idx] = m; else arr.push(m);
+  setMurid(arr); resetForm(); render();
+  alert('Data murid disimpan!');
+}
+function editMurid(i){
+  isiBorang(getMurid()[i]); editIndex.value=i;
+  formTitle.textContent='✏️ Kemas Kini Maklumat Murid';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function padamMurid(i){
+  if(!confirm('Padam murid ini?')) return;
+  const arr=getMurid(); arr.splice(i,1); setMurid(arr); render();
+}
+function render(){
+  const arr=getMurid(); const tb=tblMurid.querySelector('tbody'); tb.innerHTML='';
+  if(arr.length===0){ senaraiKosong.style.display='block'; tblMurid.style.display='none'; return; }
+  senaraiKosong.style.display='none'; tblMurid.style.display='table';
+  arr.forEach((m,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td><td>${m.nama||''}</td><td>${m.kp||''}</td>
+      <td class="row-actions">
+        <button class="btn btn-gray" onclick="editMurid(${i})">Edit</button>
+        <button class="btn btn-green" onclick="cetak(${i})">Cetak</button>
+        <button class="btn btn-red" onclick="padamMurid(${i})">Padam</button>
+      </td>`;
+    tb.appendChild(tr);
+  });
+}
+
+// ---- Cetak Sijil ----
+function fmt(d){ if(!d) return ''; const p=d.split('-'); return p.length===3? `${p[2]}/${p[1]}/${p[0]}` : d; }
+function cetak(i){
+  const m=getMurid()[i]; const t=getTetapan();
+  const logo = t.logo ? `<img src="${t.logo}">` : '';
+  sijilArea.innerHTML = `
+  <div class="sijil">
+    <div class="sijil-header">
+      ${logo}
+      <div class="sijil-title">SIJIL BERHENTI SEKOLAH</div>
+      <div class="sijil-sub">TAHUN ${t.tahun||''}</div>
+    </div>
+    <ol>
+      ${li(1,'NAMA PENUH MURID',m.nama)}
+      ${li(2,'NO. K/P MURID',m.kp)}
+      ${li(3,'NO. SIJIL LAHIR',m.sijillahir)}
+      ${li(4,'TEMPAT LAHIR',m.tempatlahir)}
+      ${li(5,'TARIKH LAHIR',fmt(m.tarikhlahir))}
+      ${li(6,'TARIKH MASUK SEKOLAH',fmt(m.tarikhmasuk))}
+      ${li(7,'ID MURID',m.id)}
+      ${li(8,'DARJAH MASUK SEKOLAH',m.darjahmasuk)}
+      ${li(9,'TARIKH TAMAT SEKOLAH',fmt(m.tarikhtamat))}
+      ${li(10,'DARJAH TERTINGGI YANG AKHIR',m.darjahakhir)}
+      ${li(11,'NAMA SEKOLAH DAHULU',m.sekolahdahulu)}
+      <li><span class="no">12.</span><span class="lbl">PENCAPAIAN ISTIMEWA ATAU KECENDERUNGAN TERTENTU</span></li>
+    </ol>
+    <table class="achv">
+      <tr><th>BADAN BERUNIFORM</th><th>KELAB DAN PERSATUAN</th><th>SUKAN DAN PERMAINAN</th><th>LAIN-LAIN</th></tr>
+      <tr><td>${m.uniform||'&nbsp;'}</td><td>${m.kelab||'&nbsp;'}</td><td>${m.sukan||'&nbsp;'}</td><td>${m.lain||'&nbsp;'}</td></tr>
+    </table>
+    <ol>
+      ${li(13,'KELAKUAN',m.kelakuan)}
+      ${li(14,'SEBAB BERHENTI',m.sebab)}
+    </ol>
+    <div class="sign">
+      <div>........................................................</div>
+      <div>(${GURU_BESAR})</div>
+      <div>GURU BESAR</div>
+      <div>${t.namaSekolah||''}</div>
+      <div class="line">TARIKH : ........................................</div>
+    </div>
+  </div>`;
+  window.print();
+}
+function li(n,l,v){ return `<li><span class="no">${n}.</span><span class="lbl">${l}</span><span class="val">${v||''}</span></li>`; }
+
+loadTetapan(); render();
+</script>
+</body>
+</html>
