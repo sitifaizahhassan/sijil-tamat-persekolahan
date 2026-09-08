@@ -32,6 +32,11 @@
   .row-actions button { padding: 4px 10px; font-size: 12px; }
   @media(max-width:700px){ .grid{grid-template-columns:1fr;} }
 
+  /* baris pencapaian kokurikulum */
+  .koko-row { display:flex; gap:6px; margin-bottom:6px; align-items:center; }
+  .koko-row input { flex:1; }
+  .koko-row .btn { margin:0; }
+
   /* ---- Skrin Log Masuk ---- */
   #loginScreen { position:fixed; inset:0; background:#0b5394; display:flex; align-items:center; justify-content:center; z-index:999; }
   .login-box { background:#fff; padding:30px; border-radius:10px; width:320px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,.3); }
@@ -59,6 +64,7 @@
   .sijil .lbl { width: 280px; }
   .sijil .val { flex: 1; }
   .sijil .val::before { content: ": "; }
+  .sijil .val ul { margin: 0; padding-left: 18px; }
   .sign { margin-top: 55px; }
   .sign .line { margin-top: 45px; }
 
@@ -145,12 +151,20 @@
 
     <div class="grid">
       <div><label>10. Pencapaian Akademik</label><input type="text" id="f_akademik"></div>
-      <div><label>11. Kebolehan &amp; Pencapaian Kokurikulum</label><input type="text" id="f_kokurikulum"></div>
       <div><label>12. Program Bacaan NILAM</label><input type="text" id="f_nilam"></div>
     </div>
 
-    <button class="btn btn-primary" onclick="simpanMurid()">💾 Simpan Murid</button>
-    <button class="btn btn-gray" onclick="resetForm()">🧹 Kosongkan Borang</button>
+    <!-- Medan 11: berbilang pencapaian kokurikulum -->
+    <div>
+      <label>11. Kebolehan &amp; Pencapaian Kokurikulum</label>
+      <div id="kokoList"></div>
+      <button type="button" class="btn btn-green" onclick="tambahKoko()">➕ Tambah Pencapaian</button>
+    </div>
+
+    <div style="margin-top:12px">
+      <button class="btn btn-primary" onclick="simpanMurid()">💾 Simpan Murid</button>
+      <button class="btn btn-gray" onclick="resetForm()">🧹 Kosongkan Borang</button>
+    </div>
   </div>
 
   <!-- Senarai Murid -->
@@ -195,6 +209,8 @@ const LS_SET = 'sijil_tetapan';
 // 14 medan mengikut susunan Google Sheet
 const FIELDS = ['nama','kp','idmurid','tarikhlahir','tarikhmasuk','tarikhtamat',
   'darjahakhir','sebab','kelakuan','akademik','kokurikulum','nilam','kelas'];
+// medan yang guna kotak biasa (bukan kokurikulum)
+const SIMPLE_FIELDS = FIELDS.filter(f => f !== 'kokurikulum');
 let SENARAI = [];
 let USER = null;
 
@@ -277,27 +293,68 @@ function paparBanner(){
 function keDDMMYYYY(v){
   if(!v) return '';
   const s = String(v).trim();
-  // ISO: 2014-07-18T16:00:00.000Z atau 2014-07-18
   let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if(m){ return m[3] + '-' + m[2] + '-' + m[1]; }
-  // sudah DD-MM-YYYY atau DD/MM/YYYY -> seragamkan guna '-'
   m = s.match(/^(\d{2})[-\/](\d{2})[-\/](\d{4})/);
   if(m){ return m[1] + '-' + m[2] + '-' + m[3]; }
   return s;
 }
 
+/* ---- Medan 11: Kokurikulum (berbilang baris) ---- */
+// setiap pencapaian dipisah dengan simbol " | " dalam Sheet
+const KOKO_PISAH = ' | ';
+
+function barisKoko(nilai){
+  const wrap = document.createElement('div');
+  wrap.className = 'koko-row';
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.className = 'koko-input';
+  inp.placeholder = 'cth: Johan Bola Sepak MSSD 2025';
+  inp.value = nilai || '';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn btn-red';
+  btn.textContent = '✖';
+  btn.onclick = function(){ wrap.remove(); if(kokoList.children.length===0) tambahKoko(); };
+  wrap.appendChild(inp);
+  wrap.appendChild(btn);
+  return wrap;
+}
+function tambahKoko(nilai){
+  kokoList.appendChild(barisKoko(nilai));
+}
+function setKoko(teks){
+  kokoList.innerHTML = '';
+  const senarai = String(teks||'')
+    .split(/\s*\|\s*|\r?\n/)   // pisah ikut "|" atau baris baru
+    .map(s=>s.trim())
+    .filter(s=>s.length>0);
+  if(senarai.length===0){ tambahKoko(''); return; }
+  senarai.forEach(s=>tambahKoko(s));
+}
+function bacaKoko(){
+  const senarai = [];
+  kokoList.querySelectorAll('.koko-input').forEach(inp=>{
+    const v = inp.value.trim();
+    if(v) senarai.push(v);
+  });
+  return senarai.join(KOKO_PISAH);
+}
+
 // ---- Borang ----
 function bacaBorang(){
   const m={};
-  FIELDS.forEach(f=>{
+  SIMPLE_FIELDS.forEach(f=>{
     const el = document.getElementById('f_'+f);
     if(el) m[f]=el.value;
   });
+  m.kokurikulum = bacaKoko();
   return m;
 }
 function isiBorang(m){
   const dateFields = ['tarikhlahir','tarikhmasuk','tarikhtamat'];
-  FIELDS.forEach(f=>{
+  SIMPLE_FIELDS.forEach(f=>{
     const el = document.getElementById('f_'+f);
     if(el){
       let val = (m&&m[f])||'';
@@ -305,6 +362,7 @@ function isiBorang(m){
       el.value = val;
     }
   });
+  setKoko(m ? m.kokurikulum : '');
   if(!isAdmin()) document.getElementById('f_kelas').value = USER.kelas;
 }
 function resetForm(){
@@ -382,9 +440,16 @@ function render(){
 }
 
 // ---- Cetak ----
-// Paparkan tarikh dalam DD-MM-YYYY untuk sijil
 function fmt(d){ return keDDMMYYYY(d); }
 function li(n,l,v){ return `<li><span class="no">${n}.</span><span class="lbl">${l}</span><span class="val">${v||''}</span></li>`; }
+// medan kokurikulum jadi senarai bullet dalam sijil
+function liKoko(n,l,teks){
+  const senarai = String(teks||'').split(/\s*\|\s*|\r?\n/).map(s=>s.trim()).filter(s=>s.length>0);
+  let val = '';
+  if(senarai.length>1){ val = '<ul>' + senarai.map(s=>'<li>'+s+'</li>').join('') + '</ul>'; }
+  else { val = senarai[0] || ''; }
+  return `<li><span class="no">${n}.</span><span class="lbl">${l}</span><span class="val">${val}</span></li>`;
+}
 function cetak(id){
   const m=SENARAI.find(x=>String(x.id)===String(id)); if(!m) return;
   const t=getTetapan();
@@ -407,7 +472,7 @@ function cetak(id){
       ${li(9,'SEBAB BERHENTI',m.sebab)}
       ${li(10,'KELAKUAN',m.kelakuan)}
       ${li(11,'PENCAPAIAN AKADEMIK',m.akademik)}
-      ${li(12,'KEBOLEHAN &amp; PENCAPAIAN KOKURIKULUM',m.kokurikulum)}
+      ${liKoko(12,'KEBOLEHAN &amp; PENCAPAIAN KOKURIKULUM',m.kokurikulum)}
       ${li(13,'PROGRAM BACAAN NILAM',m.nilam)}
     </ol>
     <div class="sign">
@@ -422,7 +487,7 @@ function cetak(id){
 }
 
 // ---- Mula ----
-function mula(){ setupUI(); loadTetapan(); paparBanner(); muatData(); }
+function mula(){ setupUI(); loadTetapan(); paparBanner(); setKoko(''); muatData(); }
 if(USER){ mula(); }
 </script>
 </body>
