@@ -180,7 +180,7 @@
       (lihat PANDUAN-SETUP.md untuk cara dapatkan URL ini)
    ============================================================ */
 const KATA_LALUAN = 'Guru@2026';
-const API_URL = 'MASUKKAN_URL_WEB_APP_ANDA_DI_SINI';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxZ_GgrB8_hsErzqlMTaMinpU4iq2Bh89243qCzB6t4XZvt2oUbwD-lYIkW8siI7dOZ/exec';
 /* ============================================================ */
 
 const LS_SET = 'sijil_tetapan';
@@ -233,7 +233,7 @@ function paparBanner(){
   if(apiSedia()){
     apiBanner.innerHTML='<div class="banner banner-ok">✅ Bersambung ke pangkalan data (Google Sheet). Data dikongsi semua guru.</div>';
   } else {
-    apiBanner.innerHTML='<div class="banner banner-warn">⚠️ API belum disambung. Sila ikut PANDUAN-SETUP.md &amp; masukkan URL Web App dalam kod (API_URL). Buat masa ini data tidak boleh disimpan.</div>';
+    apiBanner.innerHTML='<div class="banner banner-warn">⚠️ API belum disambung. Sila masukkan URL Web App dalam kod (API_URL).</div>';
   }
 }
 
@@ -249,7 +249,7 @@ function resetForm(){ isiBorang({}); editId.value=''; formTitle.textContent='�
 async function simpanMurid(){
   const m=bacaBorang();
   if(!m.nama.trim()){ alert('Sila isi Nama Penuh Murid.'); return; }
-  if(!apiSedia()){ alert('API belum disambung. Sila ikut PANDUAN-SETUP.md.'); return; }
+  if(!apiSedia()){ alert('API belum disambung.'); return; }
   const isEdit = editId.value !== '';
   if(isEdit) m.id = editId.value;
   try{
