@@ -56,11 +56,9 @@
   .sijil ol { padding-left: 0; list-style: none; margin: 20px 0; }
   .sijil ol li { display: flex; margin-bottom: 9px; }
   .sijil .no { width: 26px; }
-  .sijil .lbl { width: 260px; }
+  .sijil .lbl { width: 280px; }
   .sijil .val { flex: 1; }
   .sijil .val::before { content: ": "; }
-  .achv { width: 100%; border-collapse: collapse; margin: 8px 0; }
-  .achv th, .achv td { border: 1px solid #000; padding: 5px; font-size: 12px; text-align: center; }
   .sign { margin-top: 55px; }
   .sign .line { margin-top: 45px; }
 
@@ -135,26 +133,20 @@
         <select id="f_kelas"></select>
       </div>
       <div><label>1. Nama Penuh Murid</label><input type="text" id="f_nama"></div>
-      <div><label>2. No. K/P Murid</label><input type="text" id="f_kp"></div>
-      <div><label>3. No. Sijil Lahir</label><input type="text" id="f_sijillahir"></div>
-      <div><label>4. Tempat Lahir</label><input type="text" id="f_tempatlahir"></div>
-      <div><label>5. Tarikh Lahir</label><input type="date" id="f_tarikhlahir"></div>
-      <div><label>6. Tarikh Masuk Sekolah</label><input type="date" id="f_tarikhmasuk"></div>
-      <div><label>7. ID Murid</label><input type="text" id="f_idmurid"></div>
-      <div><label>8. Darjah Masuk Sekolah</label><input type="text" id="f_darjahmasuk" placeholder="cth: TAHUN 1"></div>
-      <div><label>9. Tarikh Tamat Sekolah</label><input type="date" id="f_tarikhtamat"></div>
-      <div><label>10. Darjah Tertinggi Yang Akhir</label><input type="text" id="f_darjahakhir" placeholder="cth: TAHUN 6"></div>
-      <div><label>11. Nama Sekolah Dahulu</label><input type="text" id="f_sekolahdahulu"></div>
-      <div><label>13. Kelakuan</label><input type="text" id="f_kelakuan" placeholder="cth: BAIK"></div>
-      <div><label>14. Sebab Berhenti</label><input type="text" id="f_sebab" placeholder="cth: TAMAT SEKOLAH RENDAH"></div>
+      <div><label>2. No. Pengenalan (K/P)</label><input type="text" id="f_kp"></div>
+      <div><label>3. ID Murid</label><input type="text" id="f_idmurid"></div>
+      <div><label>4. Tarikh Lahir</label><input type="date" id="f_tarikhlahir"></div>
+      <div><label>5. Tarikh Masuk Sekolah</label><input type="date" id="f_tarikhmasuk"></div>
+      <div><label>6. Tarikh Tamat Sekolah</label><input type="date" id="f_tarikhtamat"></div>
+      <div><label>7. Darjah Tertinggi Yang Akhir</label><input type="text" id="f_darjahakhir" placeholder="cth: TAHUN 6"></div>
+      <div><label>8. Sebab Berhenti</label><input type="text" id="f_sebab" placeholder="cth: TAMAT SEKOLAH RENDAH"></div>
+      <div><label>9. Kelakuan</label><input type="text" id="f_kelakuan" placeholder="cth: BAIK"></div>
     </div>
 
-    <label>12. Pencapaian Istimewa / Kecenderungan Tertentu</label>
     <div class="grid">
-      <div><label>Badan Beruniform</label><input type="text" id="f_uniform"></div>
-      <div><label>Kelab dan Persatuan</label><input type="text" id="f_kelab"></div>
-      <div><label>Sukan dan Permainan</label><input type="text" id="f_sukan"></div>
-      <div><label>Lain-lain</label><input type="text" id="f_lain"></div>
+      <div><label>10. Pencapaian Akademik</label><input type="text" id="f_akademik"></div>
+      <div><label>11. Kebolehan &amp; Pencapaian Kokurikulum</label><input type="text" id="f_kokurikulum"></div>
+      <div><label>12. Program Bacaan NILAM</label><input type="text" id="f_nilam"></div>
     </div>
 
     <button class="btn btn-primary" onclick="simpanMurid()">💾 Simpan Murid</button>
@@ -168,7 +160,7 @@
     </h2>
     <div id="senaraiStatus" class="muted">Memuatkan data...</div>
     <table id="tblMurid" style="display:none">
-      <thead><tr><th>#</th><th>Nama Murid</th><th>No. K/P</th><th>Kelas</th><th>Tindakan</th></tr></thead>
+      <thead><tr><th>#</th><th>Nama Murid</th><th>No. Pengenalan</th><th>Kelas</th><th>Tindakan</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
@@ -185,8 +177,7 @@
    ============================================================ */
 const API_URL = 'https://script.google.com/macros/s/AKfycbxZ_GgrB8_hsErzqlMTaMinpU4iq2Bh89243qCzB6t4XZvt2oUbwD-lYIkW8siI7dOZ/exec';
 
-// Senarai guru + kelas + kata laluan
-// role 'admin' = nampak semua kelas
+// Senarai guru + kelas + kata laluan (role 'admin' = nampak semua kelas)
 const AKAUN = [
   { pass:'Admin@2026', kelas:'*',        nama:'Admin / Guru Besar', role:'admin' },
   { pass:'Alfa2026',   kelas:'6 Alfa',   nama:'Pn. Toibah binti Abdul Manah' },
@@ -200,11 +191,11 @@ const SEMUA_KELAS = ['6 Alfa','6 Beta','6 Delta','6 Gamma','6 Omega','6 Sigma'];
 /* ============================================================ */
 
 const LS_SET = 'sijil_tetapan';
-const FIELDS = ['nama','kp','sijillahir','tempatlahir','tarikhlahir','tarikhmasuk',
-  'idmurid','darjahmasuk','tarikhtamat','darjahakhir','sekolahdahulu','kelakuan','sebab',
-  'uniform','kelab','sukan','lain','kelas'];
+// 14 medan mengikut susunan Google Sheet
+const FIELDS = ['nama','kp','idmurid','tarikhlahir','tarikhmasuk','tarikhtamat',
+  'darjahakhir','sebab','kelakuan','akademik','kokurikulum','nilam','kelas'];
 let SENARAI = [];
-let USER = null; // akaun yang log masuk
+let USER = null;
 
 // ---- Log Masuk ----
 function login(){
@@ -231,7 +222,6 @@ function logout(){ sessionStorage.removeItem('sijil_auth'); location.reload(); }
 
 function isAdmin(){ return USER && USER.role === 'admin'; }
 
-// Sediakan dropdown kelas & tajuk ikut pengguna
 function setupUI(){
   whoami.textContent = USER ? (USER.nama + (isAdmin() ? ' (Semua Kelas)' : ' — ' + USER.kelas)) : '';
   const sel = document.getElementById('f_kelas');
@@ -291,7 +281,6 @@ function isiBorang(m){
     const el = document.getElementById('f_'+f);
     if(el) el.value = (m&&m[f])||'';
   });
-  // pastikan kelas guru tetap terkunci pada kelasnya
   if(!isAdmin()) document.getElementById('f_kelas').value = USER.kelas;
 }
 function resetForm(){
@@ -304,7 +293,6 @@ async function simpanMurid(){
   const m=bacaBorang();
   if(!m.nama.trim()){ alert('Sila isi Nama Penuh Murid.'); return; }
   if(!apiSedia()){ alert('API belum disambung.'); return; }
-  // kunci kelas untuk guru biasa
   if(!isAdmin()) m.kelas = USER.kelas;
   if(!m.kelas){ alert('Sila pilih Kelas.'); return; }
   const isEdit = editId.value !== '';
@@ -344,7 +332,6 @@ async function muatData(){
     const res = await fetch(API_URL);
     const j = await res.json();
     let semua = j.data || [];
-    // Tapis ikut kelas jika bukan admin
     if(isAdmin()){
       SENARAI = semua;
     } else {
@@ -385,25 +372,18 @@ function cetak(id){
     </div>
     <ol>
       ${li(1,'NAMA PENUH MURID',m.nama)}
-      ${li(2,'NO. K/P MURID',m.kp)}
-      ${li(3,'NO. SIJIL LAHIR',m.sijillahir)}
-      ${li(4,'TEMPAT LAHIR',m.tempatlahir)}
-      ${li(5,'TARIKH LAHIR',fmt(m.tarikhlahir))}
-      ${li(6,'TARIKH MASUK SEKOLAH',fmt(m.tarikhmasuk))}
-      ${li(7,'ID MURID',m.idmurid)}
-      ${li(8,'DARJAH MASUK SEKOLAH',m.darjahmasuk)}
-      ${li(9,'TARIKH TAMAT SEKOLAH',fmt(m.tarikhtamat))}
-      ${li(10,'DARJAH TERTINGGI YANG AKHIR',m.darjahakhir)}
-      ${li(11,'NAMA SEKOLAH DAHULU',m.sekolahdahulu)}
-      <li><span class="no">12.</span><span class="lbl">PENCAPAIAN ISTIMEWA ATAU KECENDERUNGAN TERTENTU</span></li>
-    </ol>
-    <table class="achv">
-      <tr><th>BADAN BERUNIFORM</th><th>KELAB DAN PERSATUAN</th><th>SUKAN DAN PERMAINAN</th><th>LAIN-LAIN</th></tr>
-      <tr><td>${m.uniform||'&nbsp;'}</td><td>${m.kelab||'&nbsp;'}</td><td>${m.sukan||'&nbsp;'}</td><td>${m.lain||'&nbsp;'}</td></tr>
-    </table>
-    <ol>
-      ${li(13,'KELAKUAN',m.kelakuan)}
-      ${li(14,'SEBAB BERHENTI',m.sebab)}
+      ${li(2,'NO. PENGENALAN (K/P)',m.kp)}
+      ${li(3,'ID MURID',m.idmurid)}
+      ${li(4,'TARIKH LAHIR',fmt(m.tarikhlahir))}
+      ${li(5,'TARIKH MASUK SEKOLAH',fmt(m.tarikhmasuk))}
+      ${li(6,'TARIKH TAMAT SEKOLAH',fmt(m.tarikhtamat))}
+      ${li(7,'DARJAH TERTINGGI YANG AKHIR',m.darjahakhir)}
+      ${li(8,'KELAS',m.kelas)}
+      ${li(9,'SEBAB BERHENTI',m.sebab)}
+      ${li(10,'KELAKUAN',m.kelakuan)}
+      ${li(11,'PENCAPAIAN AKADEMIK',m.akademik)}
+      ${li(12,'KEBOLEHAN &amp; PENCAPAIAN KOKURIKULUM',m.kokurikulum)}
+      ${li(13,'PROGRAM BACAAN NILAM',m.nilam)}
     </ol>
     <div class="sign">
       <div>........................................................</div>
