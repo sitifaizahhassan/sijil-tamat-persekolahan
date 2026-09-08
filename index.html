@@ -52,7 +52,7 @@
   #sijilArea { display: none; }
   .sijil {
     width: 210mm; min-height: 297mm; margin: 0 auto; padding: 22mm 20mm; background: #fff;
-    border: 3px double #0b5394; color: #000; font-size: 14px;
+    color: #000; font-size: 14px;
   }
   .sijil-header { text-align: center; margin-bottom: 18px; }
   .sijil-header img { max-height: 90px; margin-bottom: 8px; }
@@ -72,7 +72,7 @@
     body { background: #fff; }
     header, .container, #loginScreen { display: none !important; }
     #sijilArea { display: block !important; }
-    .sijil { border: 3px double #0b5394; page-break-after: always; }
+    .sijil { border: none; page-break-after: always; }
   }
 </style>
 </head>
@@ -301,7 +301,6 @@ function keDDMMYYYY(v){
 }
 
 /* ---- Medan 11: Kokurikulum (berbilang baris) ---- */
-// setiap pencapaian dipisah dengan simbol " | " dalam Sheet
 const KOKO_PISAH = ' | ';
 
 function barisKoko(nilai){
@@ -327,7 +326,7 @@ function tambahKoko(nilai){
 function setKoko(teks){
   kokoList.innerHTML = '';
   const senarai = String(teks||'')
-    .split(/\s*\|\s*|\r?\n/)   // pisah ikut "|" atau baris baru
+    .split(/\s*\|\s*|\r?\n/)
     .map(s=>s.trim())
     .filter(s=>s.length>0);
   if(senarai.length===0){ tambahKoko(''); return; }
@@ -442,7 +441,6 @@ function render(){
 // ---- Cetak ----
 function fmt(d){ return keDDMMYYYY(d); }
 function li(n,l,v){ return `<li><span class="no">${n}.</span><span class="lbl">${l}</span><span class="val">${v||''}</span></li>`; }
-// medan kokurikulum jadi senarai bullet dalam sijil
 function liKoko(n,l,teks){
   const senarai = String(teks||'').split(/\s*\|\s*|\r?\n/).map(s=>s.trim()).filter(s=>s.length>0);
   let val = '';
