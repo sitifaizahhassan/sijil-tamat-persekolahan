@@ -135,9 +135,9 @@
       <div><label>1. Nama Penuh Murid</label><input type="text" id="f_nama"></div>
       <div><label>2. No. Pengenalan (K/P)</label><input type="text" id="f_kp"></div>
       <div><label>3. ID Murid</label><input type="text" id="f_idmurid"></div>
-      <div><label>4. Tarikh Lahir</label><input type="date" id="f_tarikhlahir"></div>
-      <div><label>5. Tarikh Masuk Sekolah</label><input type="date" id="f_tarikhmasuk"></div>
-      <div><label>6. Tarikh Tamat Sekolah</label><input type="date" id="f_tarikhtamat"></div>
+      <div><label>4. Tarikh Lahir</label><input type="text" id="f_tarikhlahir" placeholder="cth: 19-07-2014"></div>
+      <div><label>5. Tarikh Masuk Sekolah</label><input type="text" id="f_tarikhmasuk" placeholder="cth: 20-01-2021"></div>
+      <div><label>6. Tarikh Tamat Sekolah</label><input type="text" id="f_tarikhtamat" placeholder="cth: 04-12-2026"></div>
       <div><label>7. Darjah Tertinggi Yang Akhir</label><input type="text" id="f_darjahakhir" placeholder="cth: TAHUN 6"></div>
       <div><label>8. Sebab Berhenti</label><input type="text" id="f_sebab" placeholder="cth: TAMAT SEKOLAH RENDAH"></div>
       <div><label>9. Kelakuan</label><input type="text" id="f_kelakuan" placeholder="cth: BAIK"></div>
@@ -273,6 +273,19 @@ function paparBanner(){
   }
 }
 
+// Tukar apa-apa format tarikh ke DD-MM-YYYY (untuk paparan borang)
+function keDDMMYYYY(v){
+  if(!v) return '';
+  const s = String(v).trim();
+  // ISO: 2014-07-18T16:00:00.000Z atau 2014-07-18
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m){ return m[3] + '-' + m[2] + '-' + m[1]; }
+  // sudah DD-MM-YYYY atau DD/MM/YYYY -> seragamkan guna '-'
+  m = s.match(/^(\d{2})[-\/](\d{2})[-\/](\d{4})/);
+  if(m){ return m[1] + '-' + m[2] + '-' + m[3]; }
+  return s;
+}
+
 // ---- Borang ----
 function bacaBorang(){
   const m={};
@@ -283,9 +296,14 @@ function bacaBorang(){
   return m;
 }
 function isiBorang(m){
+  const dateFields = ['tarikhlahir','tarikhmasuk','tarikhtamat'];
   FIELDS.forEach(f=>{
     const el = document.getElementById('f_'+f);
-    if(el) el.value = (m&&m[f])||'';
+    if(el){
+      let val = (m&&m[f])||'';
+      if(dateFields.indexOf(f) !== -1) val = keDDMMYYYY(val);
+      el.value = val;
+    }
   });
   if(!isAdmin()) document.getElementById('f_kelas').value = USER.kelas;
 }
@@ -364,7 +382,8 @@ function render(){
 }
 
 // ---- Cetak ----
-function fmt(d){ if(!d) return ''; const s=String(d); const p=s.split('-'); return p.length===3? `${p[2]}/${p[1]}/${p[0]}` : s; }
+// Paparkan tarikh dalam DD-MM-YYYY untuk sijil
+function fmt(d){ return keDDMMYYYY(d); }
 function li(n,l,v){ return `<li><span class="no">${n}.</span><span class="lbl">${l}</span><span class="val">${v||''}</span></li>`; }
 function cetak(id){
   const m=SENARAI.find(x=>String(x.id)===String(id)); if(!m) return;
