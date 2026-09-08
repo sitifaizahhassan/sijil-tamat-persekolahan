@@ -178,16 +178,17 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbxZ_GgrB8_hsErzqlMTaMinpU4iq2Bh89243qCzB6t4XZvt2oUbwD-lYIkW8siI7dOZ/exec';
 
 // Senarai guru + kelas + kata laluan (role 'admin' = nampak semua kelas)
+// PENTING: nama kelas mesti sama dengan yang ada dalam Google Sheet (lajur 'kelas')
 const AKAUN = [
-  { pass:'Admin@2026', kelas:'*',        nama:'Admin / Guru Besar', role:'admin' },
-  { pass:'Alfa2026',   kelas:'6 Alfa',   nama:'Pn. Toibah binti Abdul Manah' },
-  { pass:'Beta2026',   kelas:'6 Beta',   nama:'Pn. Fadilah binti Amat' },
-  { pass:'Delta2026',  kelas:'6 Delta',  nama:'Pn. Rahayu binti Ibrahim' },
-  { pass:'Gamma2026',  kelas:'6 Gamma',  nama:'Pn. Norizah binti Mat Said' },
-  { pass:'Omega2026',  kelas:'6 Omega',  nama:'Pn. Elmi binti Che Mahmood' },
-  { pass:'Sigma2026',  kelas:'6 Sigma',  nama:'Pn. Lai Suk Fah' }
+  { pass:'Admin@2026', kelas:'*',                nama:'Admin / Guru Besar', role:'admin' },
+  { pass:'Alfa2026',   kelas:'TAHUN ENAM ALFA',  nama:'Pn. Toibah binti Abdul Manah' },
+  { pass:'Beta2026',   kelas:'TAHUN ENAM BETA',  nama:'Pn. Fadilah binti Amat' },
+  { pass:'Delta2026',  kelas:'TAHUN ENAM DELTA', nama:'Pn. Rahayu binti Ibrahim' },
+  { pass:'Gamma2026',  kelas:'TAHUN ENAM GAMMA', nama:'Pn. Norizah binti Mat Said' },
+  { pass:'Omega2026',  kelas:'TAHUN ENAM OMEGA', nama:'Pn. Elmi binti Che Mahmood' },
+  { pass:'Sigma2026',  kelas:'TAHUN ENAM SIGMA', nama:'Pn. Lai Suk Fah' }
 ];
-const SEMUA_KELAS = ['6 Alfa','6 Beta','6 Delta','6 Gamma','6 Omega','6 Sigma'];
+const SEMUA_KELAS = ['TAHUN ENAM ALFA','TAHUN ENAM BETA','TAHUN ENAM DELTA','TAHUN ENAM GAMMA','TAHUN ENAM OMEGA','TAHUN ENAM SIGMA'];
 /* ============================================================ */
 
 const LS_SET = 'sijil_tetapan';
@@ -196,6 +197,11 @@ const FIELDS = ['nama','kp','idmurid','tarikhlahir','tarikhmasuk','tarikhtamat',
   'darjahakhir','sebab','kelakuan','akademik','kokurikulum','nilam','kelas'];
 let SENARAI = [];
 let USER = null;
+
+// bandingkan kelas tanpa peduli huruf besar/kecil & ruang lebih
+function samaKelas(a, b){
+  return String(a||'').trim().toUpperCase() === String(b||'').trim().toUpperCase();
+}
 
 // ---- Log Masuk ----
 function login(){
@@ -335,7 +341,7 @@ async function muatData(){
     if(isAdmin()){
       SENARAI = semua;
     } else {
-      SENARAI = semua.filter(m => String(m.kelas||'').trim() === USER.kelas);
+      SENARAI = semua.filter(m => samaKelas(m.kelas, USER.kelas));
     }
     render();
   }catch(err){ senaraiStatus.textContent='Ralat memuatkan data: '+err; }
