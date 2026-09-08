@@ -55,8 +55,10 @@
     color: #000; font-size: 14px;
   }
   .sijil-header { text-align: center; margin-bottom: 18px; }
-  .sijil-header img { max-height: 140px; margin-bottom: 8px; }
-  .sijil-title { font-size: 20px; font-weight: bold; letter-spacing: 1px; }
+  .sijil-header img { max-height: 140px; margin-bottom: 8px; display:block; margin-left:auto; margin-right:auto; }
+  .sijil-sekolah { font-size: 16px; font-weight: bold; }
+  .sijil-kluster { font-size: 14px; font-style: italic; margin-bottom: 10px; }
+  .sijil-title { font-size: 20px; font-weight: bold; letter-spacing: 1px; margin-top: 10px; }
   .sijil-sub { font-size: 16px; font-weight: bold; }
   .sijil ol { padding-left: 0; list-style: none; margin: 20px 0; }
   .sijil ol li { display: flex; margin-bottom: 9px; }
@@ -109,7 +111,7 @@
     <div class="grid">
       <div>
         <label>Nama Sekolah</label>
-        <input type="text" id="setNamaSekolah" placeholder="cth: SK JALAN DATUK PALEMBANG">
+        <input type="text" id="setNamaSekolah" placeholder="cth: SEKOLAH KEBANGSAAN JALAN DATUK PALEMBANG">
       </div>
       <div>
         <label>Nama Guru Besar (tetap)</label>
@@ -263,7 +265,7 @@ function getTetapan(){ return JSON.parse(localStorage.getItem(LS_SET) || '{}'); 
 function setTetapan(o){ localStorage.setItem(LS_SET, JSON.stringify(o)); }
 function loadTetapan(){
   const t = getTetapan();
-  setNamaSekolah.value = t.namaSekolah || 'SK JALAN DATUK PALEMBANG';
+  setNamaSekolah.value = t.namaSekolah || 'SEKOLAH KEBANGSAAN JALAN DATUK PALEMBANG';
   setTahun.value = t.tahun || '2026';
   if(t.logo){ logoPreview.src = t.logo; logoPreview.style.display='block'; }
 }
@@ -455,6 +457,8 @@ function cetak(id){
   sijilArea.innerHTML=`
   <div class="sijil">
     <div class="sijil-header">${logo}
+      <div class="sijil-sekolah">${t.namaSekolah||''}</div>
+      <div class="sijil-kluster">SEKOLAH KLUSTER KECEMERLANGAN</div>
       <div class="sijil-title">SIJIL BERHENTI SEKOLAH</div>
       <div class="sijil-sub">TAHUN ${t.tahun||''}</div>
     </div>
