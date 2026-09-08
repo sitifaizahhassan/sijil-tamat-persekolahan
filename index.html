@@ -122,13 +122,13 @@
         <input type="text" id="setTahun" placeholder="cth: 2026">
       </div>
       <div>
-        <label>Logo Sekolah (satu)</label>
+        <label>Logo Sekolah (pilihan — logo rasmi sudah tetap)</label>
         <input type="file" id="setLogo" accept="image/*">
       </div>
     </div>
     <img id="logoPreview" style="max-height:70px;margin-top:10px;display:none">
     <div><button class="btn btn-gray" onclick="simpanTetapan()">💾 Simpan Tetapan</button></div>
-    <p class="muted">Nota: Tetapan sekolah &amp; logo disimpan dalam browser setiap komputer.</p>
+    <p class="muted">Nota: Logo &amp; nama sekolah rasmi sudah ditetapkan dalam sistem — semua guru boleh terus cetak dengan logo. Tetapan di sini hanya untuk menggantikan jika perlu.</p>
   </div>
 
   <!-- Borang Murid -->
@@ -192,6 +192,10 @@
    TETAPAN PENTING
    ============================================================ */
 const API_URL = 'https://script.google.com/macros/s/AKfycbxZ_GgrB8_hsErzqlMTaMinpU4iq2Bh89243qCzB6t4XZvt2oUbwD-lYIkW8siI7dOZ/exec';
+
+// Logo & nama sekolah RASMI (tetap dalam kod — semua guru dapat automatik)
+const LOGO_TETAP = 'logo.png';
+const NAMA_SEKOLAH_TETAP = 'SEKOLAH KEBANGSAAN JALAN DATUK PALEMBANG';
 
 // Senarai guru + kelas + kata laluan (role 'admin' = nampak semua kelas)
 // PENTING: nama kelas mesti sama dengan yang ada dalam Google Sheet (lajur 'kelas')
@@ -265,9 +269,10 @@ function getTetapan(){ return JSON.parse(localStorage.getItem(LS_SET) || '{}'); 
 function setTetapan(o){ localStorage.setItem(LS_SET, JSON.stringify(o)); }
 function loadTetapan(){
   const t = getTetapan();
-  setNamaSekolah.value = t.namaSekolah || 'SEKOLAH KEBANGSAAN JALAN DATUK PALEMBANG';
+  setNamaSekolah.value = t.namaSekolah || NAMA_SEKOLAH_TETAP;
   setTahun.value = t.tahun || '2026';
   if(t.logo){ logoPreview.src = t.logo; logoPreview.style.display='block'; }
+  else { logoPreview.src = LOGO_TETAP; logoPreview.style.display='block'; }
 }
 setLogo.addEventListener('change', e=>{
   const f=e.target.files[0]; if(!f) return;
@@ -453,14 +458,17 @@ function liKoko(n,l,teks){
 function cetak(id){
   const m=SENARAI.find(x=>String(x.id)===String(id)); if(!m) return;
   const t=getTetapan();
-  const logo=t.logo?`<img src="${t.logo}">`:'';
+  // Guna logo tersimpan (jika ada), jika tidak guna logo rasmi tetap
+  const logoSrc = t.logo || LOGO_TETAP;
+  const namaSekolah = t.namaSekolah || NAMA_SEKOLAH_TETAP;
+  const logo = logoSrc ? `<img src="${logoSrc}">` : '';
   sijilArea.innerHTML=`
   <div class="sijil">
     <div class="sijil-header">${logo}
-      <div class="sijil-sekolah">${t.namaSekolah||''}</div>
+      <div class="sijil-sekolah">${namaSekolah}</div>
       <div class="sijil-kluster">SEKOLAH KLUSTER KECEMERLANGAN</div>
       <div class="sijil-title">SIJIL BERHENTI SEKOLAH</div>
-      <div class="sijil-sub">TAHUN ${t.tahun||''}</div>
+      <div class="sijil-sub">TAHUN ${t.tahun||'2026'}</div>
     </div>
     <ol>
       ${li(1,'NAMA PENUH MURID',m.nama)}
@@ -481,7 +489,7 @@ function cetak(id){
       <div>........................................................</div>
       <div>(NOR HAMIZAH BINTI DAUD)</div>
       <div>GURU BESAR</div>
-      <div>${t.namaSekolah||''}</div>
+      <div>${namaSekolah}</div>
       <div class="line">TARIKH : ........................................</div>
     </div>
   </div>`;
