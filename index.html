@@ -9,6 +9,7 @@
   body { font-family: Arial, Helvetica, sans-serif; margin: 0; background: #f0f2f5; color: #1a1a1a; }
   header { background: #0b5394; color: #fff; padding: 16px 24px; display:flex; justify-content:space-between; align-items:center;}
   header h1 { margin: 0; font-size: 20px; }
+  header .who { font-size:13px; opacity:.9; }
   .container { max-width: 1100px; margin: 20px auto; padding: 0 16px; }
   .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
   .card h2 { margin-top: 0; font-size: 16px; color: #0b5394; border-bottom: 2px solid #eee; padding-bottom: 8px; }
@@ -87,7 +88,10 @@
 <!-- ===== APLIKASI ===== -->
 <div id="app">
 <header>
-  <h1>🎓 Sistem Sijil Berhenti Sekolah</h1>
+  <div>
+    <h1>🎓 Sistem Sijil Berhenti Sekolah</h1>
+    <div class="who" id="whoami"></div>
+  </div>
   <button class="btn btn-gray" style="margin:0" onclick="logout()">🚪 Log Keluar</button>
 </header>
 
@@ -126,6 +130,10 @@
     <h2 id="formTitle">📝 Tambah Maklumat Murid</h2>
     <input type="hidden" id="editId" value="">
     <div class="grid">
+      <div>
+        <label>Kelas</label>
+        <select id="f_kelas"></select>
+      </div>
       <div><label>1. Nama Penuh Murid</label><input type="text" id="f_nama"></div>
       <div><label>2. No. K/P Murid</label><input type="text" id="f_kp"></div>
       <div><label>3. No. Sijil Lahir</label><input type="text" id="f_sijillahir"></div>
@@ -155,12 +163,12 @@
 
   <!-- Senarai Murid -->
   <div class="card">
-    <h2>👥 Senarai Murid (dikongsi semua guru)
+    <h2 id="senaraiTitle">👥 Senarai Murid
       <button class="btn btn-gray" style="float:right;margin:0" onclick="muatData()">🔄 Muat Semula</button>
     </h2>
     <div id="senaraiStatus" class="muted">Memuatkan data...</div>
     <table id="tblMurid" style="display:none">
-      <thead><tr><th>#</th><th>Nama Murid</th><th>No. K/P</th><th>Tindakan</th></tr></thead>
+      <thead><tr><th>#</th><th>Nama Murid</th><th>No. K/P</th><th>Kelas</th><th>Tindakan</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
@@ -174,26 +182,37 @@
 <script>
 /* ============================================================
    TETAPAN PENTING
-   ------------------------------------------------------------
-   1. KATA_LALUAN : kata laluan untuk guru log masuk
-   2. API_URL     : URL Web App daripada Google Apps Script
-      (lihat PANDUAN-SETUP.md untuk cara dapatkan URL ini)
    ============================================================ */
-const KATA_LALUAN = 'Guru@2026';
 const API_URL = 'https://script.google.com/macros/s/AKfycbxZ_GgrB8_hsErzqlMTaMinpU4iq2Bh89243qCzB6t4XZvt2oUbwD-lYIkW8siI7dOZ/exec';
+
+// Senarai guru + kelas + kata laluan
+// role 'admin' = nampak semua kelas
+const AKAUN = [
+  { pass:'Admin@2026', kelas:'*',        nama:'Admin / Guru Besar', role:'admin' },
+  { pass:'Alfa2026',   kelas:'6 Alfa',   nama:'Pn. Toibah binti Abdul Manah' },
+  { pass:'Beta2026',   kelas:'6 Beta',   nama:'Pn. Fadilah binti Amat' },
+  { pass:'Delta2026',  kelas:'6 Delta',  nama:'Pn. Rahayu binti Ibrahim' },
+  { pass:'Gamma2026',  kelas:'6 Gamma',  nama:'Pn. Norizah binti Mat Said' },
+  { pass:'Omega2026',  kelas:'6 Omega',  nama:'Pn. Elmi binti Che Mahmood' },
+  { pass:'Sigma2026',  kelas:'6 Sigma',  nama:'Pn. Lai Suk Fah' }
+];
+const SEMUA_KELAS = ['6 Alfa','6 Beta','6 Delta','6 Gamma','6 Omega','6 Sigma'];
 /* ============================================================ */
 
 const LS_SET = 'sijil_tetapan';
 const FIELDS = ['nama','kp','sijillahir','tempatlahir','tarikhlahir','tarikhmasuk',
   'idmurid','darjahmasuk','tarikhtamat','darjahakhir','sekolahdahulu','kelakuan','sebab',
-  'uniform','kelab','sukan','lain'];
+  'uniform','kelab','sukan','lain','kelas'];
 let SENARAI = [];
+let USER = null; // akaun yang log masuk
 
 // ---- Log Masuk ----
 function login(){
   const p = passInput.value;
-  if(p === KATA_LALUAN){
-    sessionStorage.setItem('sijil_auth','1');
+  const akaun = AKAUN.find(a => a.pass === p);
+  if(akaun){
+    USER = akaun;
+    sessionStorage.setItem('sijil_auth', JSON.stringify(akaun));
     loginScreen.style.display='none';
     app.style.display='block';
     mula();
@@ -202,8 +221,29 @@ function login(){
   }
 }
 function logout(){ sessionStorage.removeItem('sijil_auth'); location.reload(); }
-if(sessionStorage.getItem('sijil_auth')==='1'){
-  loginScreen.style.display='none'; app.style.display='block';
+(function(){
+  const saved = sessionStorage.getItem('sijil_auth');
+  if(saved){
+    try { USER = JSON.parse(saved); } catch(e){ USER = null; }
+    if(USER){ loginScreen.style.display='none'; app.style.display='block'; }
+  }
+})();
+
+function isAdmin(){ return USER && USER.role === 'admin'; }
+
+// Sediakan dropdown kelas & tajuk ikut pengguna
+function setupUI(){
+  whoami.textContent = USER ? (USER.nama + (isAdmin() ? ' (Semua Kelas)' : ' — ' + USER.kelas)) : '';
+  const sel = document.getElementById('f_kelas');
+  sel.innerHTML = '';
+  const senaraiKelas = isAdmin() ? SEMUA_KELAS : [USER.kelas];
+  senaraiKelas.forEach(k=>{
+    const o=document.createElement('option'); o.value=k; o.textContent=k; sel.appendChild(o);
+  });
+  if(!isAdmin()) sel.value = USER.kelas;
+  senaraiTitle.childNodes[0].nodeValue = isAdmin()
+    ? '👥 Senarai Murid (Semua Kelas) '
+    : '👥 Senarai Murid — ' + USER.kelas + ' ';
 }
 
 // ---- Tetapan (localStorage) ----
@@ -231,25 +271,42 @@ function simpanTetapan(){
 function apiSedia(){ return API_URL && API_URL.indexOf('http')===0; }
 function paparBanner(){
   if(apiSedia()){
-    apiBanner.innerHTML='<div class="banner banner-ok">✅ Bersambung ke pangkalan data (Google Sheet). Data dikongsi semua guru.</div>';
+    apiBanner.innerHTML='<div class="banner banner-ok">✅ Bersambung ke pangkalan data (Google Sheet).</div>';
   } else {
-    apiBanner.innerHTML='<div class="banner banner-warn">⚠️ API belum disambung. Sila masukkan URL Web App dalam kod (API_URL).</div>';
+    apiBanner.innerHTML='<div class="banner banner-warn">⚠️ API belum disambung.</div>';
   }
 }
 
 // ---- Borang ----
 function bacaBorang(){
-  const m={}; FIELDS.forEach(f=>{ m[f]=document.getElementById('f_'+f).value; }); return m;
+  const m={};
+  FIELDS.forEach(f=>{
+    const el = document.getElementById('f_'+f);
+    if(el) m[f]=el.value;
+  });
+  return m;
 }
 function isiBorang(m){
-  FIELDS.forEach(f=>{ document.getElementById('f_'+f).value = (m&&m[f])||''; });
+  FIELDS.forEach(f=>{
+    const el = document.getElementById('f_'+f);
+    if(el) el.value = (m&&m[f])||'';
+  });
+  // pastikan kelas guru tetap terkunci pada kelasnya
+  if(!isAdmin()) document.getElementById('f_kelas').value = USER.kelas;
 }
-function resetForm(){ isiBorang({}); editId.value=''; formTitle.textContent='📝 Tambah Maklumat Murid'; }
+function resetForm(){
+  isiBorang({}); editId.value='';
+  if(!isAdmin()) document.getElementById('f_kelas').value = USER.kelas;
+  formTitle.textContent='📝 Tambah Maklumat Murid';
+}
 
 async function simpanMurid(){
   const m=bacaBorang();
   if(!m.nama.trim()){ alert('Sila isi Nama Penuh Murid.'); return; }
   if(!apiSedia()){ alert('API belum disambung.'); return; }
+  // kunci kelas untuk guru biasa
+  if(!isAdmin()) m.kelas = USER.kelas;
+  if(!m.kelas){ alert('Sila pilih Kelas.'); return; }
   const isEdit = editId.value !== '';
   if(isEdit) m.id = editId.value;
   try{
@@ -286,7 +343,13 @@ async function muatData(){
   try{
     const res = await fetch(API_URL);
     const j = await res.json();
-    SENARAI = j.data || [];
+    let semua = j.data || [];
+    // Tapis ikut kelas jika bukan admin
+    if(isAdmin()){
+      SENARAI = semua;
+    } else {
+      SENARAI = semua.filter(m => String(m.kelas||'').trim() === USER.kelas);
+    }
     render();
   }catch(err){ senaraiStatus.textContent='Ralat memuatkan data: '+err; }
 }
@@ -297,7 +360,7 @@ function render(){
   senaraiStatus.style.display='none'; tblMurid.style.display='table';
   SENARAI.forEach((m,i)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${i+1}</td><td>${m.nama||''}</td><td>${m.kp||''}</td>
+    tr.innerHTML=`<td>${i+1}</td><td>${m.nama||''}</td><td>${m.kp||''}</td><td>${m.kelas||''}</td>
       <td class="row-actions">
         <button class="btn btn-gray" onclick="editMurid('${m.id}')">Edit</button>
         <button class="btn btn-green" onclick="cetak('${m.id}')">Cetak</button>
@@ -354,8 +417,8 @@ function cetak(id){
 }
 
 // ---- Mula ----
-function mula(){ loadTetapan(); paparBanner(); muatData(); }
-if(sessionStorage.getItem('sijil_auth')==='1'){ mula(); }
+function mula(){ setupUI(); loadTetapan(); paparBanner(); muatData(); }
+if(USER){ mula(); }
 </script>
 </body>
 </html>
